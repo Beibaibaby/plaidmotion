@@ -1,23 +1,19 @@
 from __future__ import absolute_import, division
-
 from psychopy import locale_setup
 from psychopy import prefs
 from psychopy import sound, gui, visual, core, data, event, logging, clock, colors
 from psychopy.constants import (NOT_STARTED, STARTED, PLAYING, PAUSED,
                                 STOPPED, FINISHED, PRESSED, RELEASED, FOREVER)
-
-import numpy as np  # whole numpy lib is available, prepend 'np.'
+import numpy as np
 from numpy import (sin, cos, tan, log, log10, pi, average,
                    sqrt, std, deg2rad, rad2deg, linspace, asarray)
 from numpy.random import random, randint, normal, shuffle, choice as randchoice
-import os  # handy system and path functions
-import sys  # to get file system encoding
-
+import os
+import sys
 from psychopy.hardware import keyboard
+conditionoftrial = 0 #pointer for global vri, remain to be changed
 
-
-
-# Ensure that relative paths start from the same directory as this script
+# Path Ensuring
 _thisDir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(_thisDir)
 
@@ -41,6 +37,7 @@ thisExp = data.ExperimentHandler(name=expName, version='',
     originPath='/Users/dragon/Desktop/CN/PLAID/plaidmotiontest.py',
     savePickle=True, saveWideText=True,
     dataFileName=filename)
+
 # save a log file for detail verbose info
 logFile = logging.LogFile(filename+'.log', level=logging.EXP)
 logging.console.setLevel(logging.WARNING)  # this outputs to the screen, not a file
@@ -56,7 +53,8 @@ win = visual.Window(
     winType='pyglet', allowGUI=False, allowStencil=False,
     monitor='testMonitor', color=[0,0,0], colorSpace='rgb',
     blendMode='avg', useFBO=True, 
-    units='height')
+    units='height')# you can change the setting of screening here
+
 # store frame rate of monitor if we can measure it
 expInfo['frameRate'] = win.getActualFrameRate()
 if expInfo['frameRate'] != None:
@@ -95,7 +93,8 @@ key_resp = keyboard.Keyboard()
 globalClock = core.Clock()  # to track the time since experiment started
 routineTimer = core.CountdownTimer()  # to track time remaining of each (non-slip) routine 
 
-# ------Prepare to start Routine "startup"-------
+# ------Prepare to start "startup"-------
+
 continueRoutine = True
 routineTimer.add(1.000000)
 # update component parameters for each repeat
@@ -187,6 +186,97 @@ for thisTrial in trials:
     continueRoutine = True
     # update component parameters for each repeat
     # keep track of which components have finished
+#----------------------Def of Left and Right Stimulus---------------------------
+    direction = [0, 1]  # One left, Two Right
+    nTrialsPerCond = 10
+    nTrials = nTrialsPerCond * len(direction)
+    cond = np.random.randint(len(direction) - 1, nTrials)
+
+    grating1 = visual.GratingStim(win, mask="raisedCos", color=[1.0, 1.0, 1.0], opacity=1.0, size=(1.5, 1.5), sf=(7, 0),
+                                  ori=45)
+
+    grating2 = visual.GratingStim(win, mask="raisedCos", color=[1.0, 1.0, 1.0], opacity=0.5, size=(1.5, 1.5), sf=(7, 0),
+                                  ori=-45)
+
+    grating3 = visual.GratingStim(win, mask="raisedCos", color=[1.0, 1.0, 1.0], opacity=1.0, size=(1.5, 1.5), sf=(7, 0),
+                                  ori=135)
+
+    grating4 = visual.GratingStim(win, mask="raisedCos", color=[1.0, 1.0, 1.0], opacity=0.5, size=(1.5, 1.5), sf=(7, 0),
+                                  ori=-135)
+
+    trialClock = core.Clock()
+
+
+    def stimulusright1():
+        t = 0
+        while t < 5:
+            t = trialClock.getTime()
+            grating1.setPhase(1 * t)
+            grating1.draw()  # redraw it
+            grating2.setPhase(2 * t)
+            grating2.draw()  # redraw it
+            win.flip()
+            # update the screen
+            # handle key presses each frame
+            for keys in event.getKeys():
+
+                if keys in ['escape', 'q']:
+                    core.quit()
+
+
+    def stimulusright2():
+        t = 0
+        while t < 5:
+            t = trialClock.getTime()
+            grating1.setPhase(2 * t)
+            grating1.draw()  # redraw it
+            grating2.setPhase(1 * t)
+            grating2.draw()  # redraw it
+            win.flip()
+            # update the screen
+            # handle key presses each frame
+            for keys in event.getKeys():
+
+                if keys in ['escape', 'q']:
+                    core.quit()
+
+
+    def stimulusleft1():
+        t = 0
+        while t < 5:
+            t = trialClock.getTime()
+            grating3.setPhase(2 * t)
+            grating3.draw()  # redraw it
+            grating4.setPhase(1 * t)
+            grating4.draw()  # redraw it
+            win.flip()
+            # update the screen
+            # handle key presses each frame
+            for keys in event.getKeys():
+
+                if keys in ['escape', 'q']:
+                    core.quit()
+
+
+    def stimulusleft2():
+        t = 0
+        while t < 5:
+            t = trialClock.getTime()
+            grating3.setPhase(1 * t)
+            grating3.draw()  # redraw it
+            grating4.setPhase(2 * t)
+            grating4.draw()  # redraw it
+            win.flip()
+            # update the screen
+            # handle key presses each frame
+            for keys in event.getKeys():
+
+                if keys in ['escape', 'q']:
+                    core.quit()
+
+
+    stimulustrial = np.random.randint(2, size=5)
+
     stimulusComponents = []
     for thisComponent in stimulusComponents:
         thisComponent.tStart = None
@@ -201,7 +291,7 @@ for thisTrial in trials:
     stimulusClock.reset(-_timeToFirstFrame)  # t0 is time of first possible flip
     frameN = -1
     
-    # -------Run Routine "stimulus"-------
+    # -------Run R "stimulus"-------
     while continueRoutine:
         # get current time
         t = stimulusClock.getTime()
@@ -209,46 +299,16 @@ for thisTrial in trials:
         tThisFlipGlobal = win.getFutureFlipTime(clock=None)
         frameN = frameN + 1  # number of completed frames (so 0 is the first frame)
         # update/draw components on each frame
-        from psychopy import visual, core, event
-        import numpy as np
         from psychopy.tools.filetools import fromFile, toFile
         
         # win.getMovieFrame(buffer='back')
         # create a window to draw in
-        
-        direction = [0, 1]  # One left, Two Right
-        nTrialsPerCond = 10
-        nTrials = nTrialsPerCond * len(direction)
-        cond = np.random.randint(len(direction)-1, nTrials)
-        
-        grating1 = visual.GratingStim(win, mask="raisedCos", color=[1.0, 1.0, 1.0], opacity=1.0, size=(1.5, 1.5), sf=(7, 0),
-                                      ori=45)
-        
-        grating2 = visual.GratingStim(win, mask="raisedCos", color=[1.0, 1.0, 1.0], opacity=0.5, size=(1.5, 1.5), sf=(7, 0),
-                                      ori=135)
-        trialClock = core.Clock()
-        
-        
-        def stimulusleft():
-            t = 0
-            while t < 5:
-                t = trialClock.getTime()
-                grating1.setPhase(2 * t)
-                grating1.draw()  # redraw it
-                grating2.setPhase(2 * t)
-                grating2.draw()  # redraw it
-                win.flip()
-                # update the screen
-                # handle key presses each frame
-                for keys in event.getKeys():
-        
-                    if keys in ['escape', 'q']:
-                        core.quit()
-        
-                        # win.saveMovieFrames(fileName='some file.mp4')
-        
-        stimulusleft()
-        
+        #stimulusright1()
+        condition_this_trial = np.random.randint(2)
+        if condition_this_trial == 0:
+            stimulusleft1()
+        else: stimulusright1()
+
         # check for quit (typically the Esc key)
         if endExpNow or defaultKeyboard.getKeys(keyList=["escape"]):
             core.quit()
@@ -275,11 +335,13 @@ for thisTrial in trials:
     
     # ------Prepare to start Routine "trial"-------
     continueRoutine = True
-    routineTimer.add(5.000000)
+    routineTimer.add(5.000000) #The whole time of each trial is added
+
     # update component parameters for each repeat
     key_resp.keys = []
     key_resp.rt = []
     _key_resp_allKeys = []
+
     # keep track of which components have finished
     trialComponents = [text, key_resp]
     for thisComponent in trialComponents:
@@ -385,7 +447,6 @@ for thisTrial in trials:
     thisExp.nextEntry()
     
 # completed 5.0 repeats of 'trials'
-
 
 # Flip one final time so any remaining win.callOnFlip() 
 # and win.timeOnFlip() tasks get executed before quitting

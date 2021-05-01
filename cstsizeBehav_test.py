@@ -1,40 +1,32 @@
 '''
-Behavioral measurement of visual sensitivity.
-The strategy is to set stimulus to maximum size and vary five levels of contrast
-We then determine the middle contrast corresponding to the average thresholds of min and max contrast
+We want to measure spatial suppression curve and spatial summation curve
+Spatial suppression curve: contrast=0.99, radius=[0.7, 3, 5]
+Spatial summation curve: contrast=0.02, radius=[0.7, 3, 5]
 
 History:
-    2021/04/26 RYZ create it
+    2021/04/30 RYZ create it
+
 To do:
 
 '''
-
+import psychopy
 from psychopy import core, monitors, clock, visual, event, data
 from psychopy.hardware import keyboard
 from psychopy.visual import circle
 import numpy as np
 from time import localtime, strftime
+from envelope import envelope
 
-# ======= parameter you want to change ========
+
+# ======= paremter you want to change ========
 subjID = 'RYZ' # initials of the subject, to save data
 expName = 'cstsizeBehav' # contrast size EEG 
 wantSave = False # save data or not
-# from egi import simple as egi
-
-# To send markers, we can use egi package or use pylsl package
-"""
-from pylsl import StreamInfo, StreamOutlet
-info = StreamInfo(name='my_stream_name', type='Markers', channel_count=1,
-                  channel_format='int32', source_id='uniqueid12345')
-# Initialize the stream.
-outlet = StreamOutlet(info)
-"""
 
 # ================ exp setting ==================
 stimDir = [-1, 1]  # -1, left;1, right
-stimRadius = 8  # in this regime, we use maximum size
-stimContrast = [0.02, 0.05, 0.1, 0.2, 0.45, 0.99]
-nTrialsPerCond = 1
+stimRadius = [0.7, 3, 5] # radius in deg
+stimContrast = [0.02, 0.99]
 speedDeg = 4  # deg/sec, shall convert to deg/frame
 sf = 1 # cycle/deg
 
@@ -43,30 +35,33 @@ mon = monitors.Monitor('hospital6')
 mon.setDistance(57)  # View distance cm
 mon.setSizePix([1920, 1080])
 mon.setWidth(52.71)  # cm
-myWin = visual.Window([400, 400], units='deg', monitor=mon, checkTiming=True)
-fps = myWin.getActualFrameRate() # sometimes this call fails...
+myWin = visual.Window([800, 800], units='deg', monitor=mon, checkTiming=True)
+#fps = myWin.getActualFrameRate() # sometimes this call fails...
+fps=60
 
 event.globalKeys.clear()
 event.globalKeys.add(key='q', func=core.quit)  # global quit
 globalClock = clock.Clock()
 kb = keyboard.Keyboard()  # create kb object
 
-# let's do some calculation before going further
+# Lets do some calculation before going further
 phaseStepFrame = speedDeg * sf / fps # how many cycles / frame
-stimFrames = [round(i / myWin.monitorFramePeriod) for i in stimDur]
 
-# define trial handler
-stimList = []
-for dire in stimDir:
-        for c in stimContrast:
-            stimList.append({'stimDir': dire, 'stimContrast':c})
-trials=data.TrialHandler(trialList=stimList, nReps=nTrialsPerCond)
+# define staircase handler
+conditions = []
+conditions.append({'label':'c0r0', 'stimContrast':stimContrast[0], 'stimRadius':stimRadius[0], 'startVal':90, 'startValSd':20}) # start value in millisecs
+conditions.append({'label':'c0r1', 'stimContrast':stimContrast[0], 'stimRadius':stimRadius[1],'startVal': 70, 'startValSd':20})
+conditions.append({'label':'c0r2', 'stimContrast':stimContrast[0], 'stimRadius':stimRadius[2],'startVal': 50, 'startValSd':15})
+conditions.append({'label':'c1r0', 'stimContrast':stimContrast[1], 'stimRadius':stimRadius[0],'startVal': 50, 'startValSd':15})
+conditions.append({'label':'c1r1', 'stimContrast':stimContrast[1], 'stimRadius':stimRadius[1],'startVal': 70, 'startValSd':20})
+conditions.append({'label':'c1r2', 'stimContrast':stimContrast[1], 'stimRadius':stimRadius[2],'startVal': 90, 'startValSd':20})
+stairs = data.MultiStairHandler(stairType='quest',conditions=conditions, nTrials=2)
 
 #  ====== define stimulus components =======
 # define fixation
 fixation = circle.Circle(myWin, units='deg', radius=0.15, lineColor=1, fillColor=1)
 # define drift grating
-driftGrating = visual.GratingStim(myWin, tex='sin', size=stimRadius*2, units='deg', mask='raisedCos', sf=sf)
+driftGrating = visual.GratingStim(myWin, tex='sin', units='deg', mask='raisedCos', sf=sf)
 
 
 # define welcome instruction interface
@@ -87,24 +82,27 @@ myWin.flip()
 
 # do it !!!
 #  =========== main experiment loop ========
-for trial in trials: # loop trial handler
+for thisDur, thisCon in stairs: # loop trial handler
     # show fixation
     fixation.draw()
     myWin.flip()
     
-    # add 1000ms delay while calculating stim
+    # add 1000ms delay while setting the parameters
     ISI = clock.StaticPeriod(screenHz=fps)
-    ISI.start(np.random.rand()+1)  # 1-2s delay
-    driftGrating.contrast = trial['stimContrast'] # set contrast
+    ISI.start(np.random.rand())  # random (0, 1)s delay
+    driftGrating.size = thisCon['stimRadius'] * 2 # set size as diameter
+    profile, nFrame = envelope(thisDur, frame_rate=fps, amplitude=1)
     # from staircases get stimulus duration
     # trials.addData('stimDur', dur)
     # trials.addData('stimFrames', nFrame) 
     ISI.complete()  # finish the delay period
 
-    # show the motion stimulus and get RT and choice
+    # Show the motion stimulus and get RT and choice
+    dire = np.random.choice(stimDir)
     for iFrame in range(nFrame): # loop frames
         # driftGrating move one step 
-        driftGrating.phase = phaseStepFrame * iFrame * trial['stimDir']
+        driftGrating.contrast = profile * thisCon['stimContrast']
+        driftGrating.phase = phaseStepFrame * iFrame * dire
         driftGrating.draw()
         myWin.flip()        
     myWin.flip()
@@ -115,8 +113,11 @@ for trial in trials: # loop trial handler
     kb.stop()
 
     # save data for this trial
-    trials.addData('choice', -1 if keys[0].name=='left' else 1) # we only record the 1st key
-    trials.addData('correct', 1 if trials.data['choice'][trials.thisIndex]==trial['stimDir'] else 0)
+    choice = -1 if keys[0].name=='left' else 1    
+    correct = (choice==dire)
+    stairs.addOtherData('direction', dire) # we only record the 1st key
+    stairs.addOtherData('choice', correct) # we only record the 1st key
+    stairs.addResponse(correct, intensity=thisDur)
 
     # update staircases
 
